@@ -82,6 +82,12 @@ export const constantRoutes = [
         component: () => import("@/views/split/index"),
         meta: { title: "Split", icon: "tree" },
       },
+      {
+        path: "gantt",
+        name: "Gantt",
+        component: () => import("@/views/gantt/index"),
+        meta: { title: "Gantt", icon: "tree" },
+      },
     ],
   },
 

@@ -111,6 +111,33 @@ export default {
         // 将滚动位置应用到头部 SVG 上
         newSvg.style.transform = `translateX(-${scrollLeft}px)`;
       });
+      // 获取包含日期和月份信息的 DOM 元素
+      const dateGroup = date;
+
+      // 创建表格头部的 HTML 结构
+      let tableHeaderHTML = "<thead><tr>";
+
+      // 遍历日期和月份信息的 DOM 元素中的所有 <text> 元素
+      dateGroup.querySelectorAll("text").forEach((textElement) => {
+        const text = textElement.textContent;
+        const isUpperText = textElement.classList.contains("upper-text");
+
+        // 根据是否是月份信息来确定表格头部的结构
+        if (isUpperText) {
+          // 如果是月份信息，则创建一个占据整行的表头单元格
+          tableHeaderHTML += `<th colspan="5">${text}</th>`;
+        } else {
+          // 如果是日期信息，则创建一个普通的表头单元格
+          tableHeaderHTML += `<th>${text}</th>`;
+        }
+      });
+
+      // 关闭表格头部的 HTML 结构
+      tableHeaderHTML += "</tr></thead>";
+
+      // 将表格头部的 HTML 结构插入到表格中
+      const table = document.createElement("table");
+      table.innerHTML = tableHeaderHTML;
     },
     setupGanttChart() {
       this.gantt = new Gantt(this.$refs.gantt, this.tasks, {

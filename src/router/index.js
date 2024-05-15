@@ -88,6 +88,12 @@ export const constantRoutes = [
         component: () => import("@/views/gantt/index"),
         meta: { title: "Gantt", icon: "tree" },
       },
+      {
+        path: "updated",
+        name: "Updated",
+        component: () => import("@/views/updated/index"),
+        meta: { title: "Updated", icon: "tree" },
+      },
     ],
   },
 

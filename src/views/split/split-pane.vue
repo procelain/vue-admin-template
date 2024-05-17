@@ -1,19 +1,10 @@
 <template>
-  <div
-    ref="splitPane"
-    class="split-pane"
-    :class="direction"
-    :style="{ flexDirection: direction }"
-  >
+  <div ref="splitPane" class="split-pane" :class="direction" :style="{ flexDirection: direction }">
     <div class="pane pane-one" :style="lengthType + ':' + paneLengthValue">
       <slot name="one" />
     </div>
 
-    <div
-      class="pane-trigger"
-      :style="lengthType + ':' + triggerLengthValue"
-      @mousedown="handleMouseDown"
-    />
+    <div class="pane-trigger" :style="lengthType + ':' + triggerLengthValue" @mousedown="handleMouseDown" />
 
     <div class="pane pane-two">
       <slot name="two" />
@@ -57,9 +48,8 @@ export default {
       return this.direction === 'row' ? 'width' : 'height'
     },
     paneLengthValue() {
-      return `calc(${this.paneLengthPercent}% - ${
-        this.triggerLength / 2 + 'px'
-      })`
+      return `calc(${this.paneLengthPercent}% - ${this.triggerLength / 2 + 'px'
+        })`
     },
 
     triggerLengthValue() {
@@ -120,37 +110,44 @@ export default {
 
 <style scoped lang="scss">
 .split-pane {
-  background: palegreen;
+  background: #fff;
   height: 100%;
   display: flex;
+
   &.row {
     .pane {
       height: 100%;
     }
-    > .pane-trigger {
+
+    >.pane-trigger {
       height: 100%;
       cursor: col-resize !important;
     }
   }
+
   &.column {
     .pane {
       width: 100%;
     }
-    > .pane-trigger {
+
+    >.pane-trigger {
       width: 100%;
       cursor: row-resize;
     }
   }
-  .pane-one {
-    background: palevioletred;
-  }
+
+  .pane-one {}
+
   .pane-trigger {
-    background: palegoldenrod;
+    background-color: rgb(229, 231, 235);
+    background-repeat: no-repeat;
+    background-position: 50% center;
+    background-image: url(~@/assets/vertical.png);
     user-select: none;
   }
+
   .pane-two {
     flex: 1;
-    background: turquoise;
   }
 }
 </style>

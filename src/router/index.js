@@ -65,18 +65,6 @@ export const constantRoutes = [
     meta: { title: "Example", icon: "el-icon-s-help" },
     children: [
       {
-        path: "table",
-        name: "Table",
-        component: () => import("@/views/table/index"),
-        meta: { title: "Table", icon: "table" },
-      },
-      {
-        path: "tree",
-        name: "Tree",
-        component: () => import("@/views/tree/index"),
-        meta: { title: "Tree", icon: "tree" },
-      },
-      {
         path: "split",
         name: "Split",
         component: () => import("@/views/split/index"),
@@ -89,10 +77,10 @@ export const constantRoutes = [
         meta: { title: "Gantt", icon: "tree" },
       },
       {
-        path: "updated",
-        name: "Updated",
-        component: () => import("@/views/updated/index"),
-        meta: { title: "Updated", icon: "tree" },
+        path: "dhtmlx-gantt",
+        name: "DhtmlxGantt",
+        component: () => import("@/views/DhtmlxGantt/index"),
+        meta: { title: "DhtmlxGantt", icon: "tree" },
       },
     ],
   },

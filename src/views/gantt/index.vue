@@ -1,8 +1,8 @@
 <template>
-  <div>
-    <button @click="demoViewMode('day')">Day View Mode</button>
+  <div class="gantt">
+    <!-- <button @click="demoViewMode('day')">Day View Mode</button>
     <button @click="demoViewMode('week')">Week View Mode</button>
-    <button @click="demoViewMode('month')">Month View Mode</button>
+    <button @click="demoViewMode('month')">Month View Mode</button> -->
     <frappe-gantt :view-mode="mode" :tasks="tasks" @task-updated="debugEventLog.push($event)"
       @task-date-updated="debugEventLog.push($event)" @task-progress-change="debugEventLog.push($event)" />
     <button @click="addRandomTask">Add</button>
@@ -84,13 +84,4 @@ export default {
 };
 </script>
 
-<style lang="scss">
-#app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  //   text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
+<style lang="scss"></style>

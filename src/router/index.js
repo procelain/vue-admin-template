@@ -71,16 +71,16 @@ export const constantRoutes = [
         meta: { title: "Split", icon: "tree" },
       },
       {
-        path: "gantt",
-        name: "Gantt",
-        component: () => import("@/views/gantt/index"),
-        meta: { title: "Gantt", icon: "tree" },
-      },
-      {
         path: "dhtmlx-gantt",
         name: "DhtmlxGantt",
         component: () => import("@/views/DhtmlxGantt/index"),
         meta: { title: "DhtmlxGantt", icon: "tree" },
+      },
+      {
+        path: "x6",
+        name: "X6",
+        component: () => import("@/views/x6/index"),
+        meta: { title: "x6", icon: "tree" },
       },
     ],
   },

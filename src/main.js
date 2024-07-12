@@ -14,6 +14,14 @@ import 'ant-design-vue/dist/antd.css'
 
 Vue.use(Antd)
 
+import 'xe-utils'
+
+import VXETable from 'vxe-table'
+
+import 'vxe-table/lib/style.css'
+
+Vue.use(VXETable)
+
 import App from './App'
 import store from './store'
 import router from './router'

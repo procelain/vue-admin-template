@@ -10,14 +10,5 @@ module.exports = {
       // https://panjiachen.github.io/vue-element-admin-site/guide/advanced/lazy-loading.html
       plugins: ['dynamic-import-node']
     }
-  },
-  plugins: [
-    [
-      'import',
-      {
-        libraryName: 'vxe-table',
-        style: true // 样式是否也按需加载
-      }
-    ]
-  ]
+  }
 }

@@ -12,7 +12,6 @@ export default {
   mounted() {
     const node = this.getNode()
     this.nodeData = node.getData()
-    console.log('======',this.nodeData)
   },
   data() {
     return {

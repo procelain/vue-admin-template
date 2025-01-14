@@ -6,31 +6,32 @@
     <!-- 路线图 -->
     <div class="graph-container">
       <div ref="graphContainer"></div>
-<!--      <div id="minimapContainer"></div>-->
+      <!--      <div id="minimapContainer"></div>-->
     </div>
   </div>
 </template>
 
 <script>
-import { Graph, Shape } from '@antv/x6';
+import { Graph, Shape } from '@antv/x6'
 import Toolbar from './Toolbar.vue'
 import SnakeLayout from '../layouts/SnakeLayout' // 自定义蛇形布局
 import NodeComponent from './NodeComponent.vue'
 import { register } from '@antv/x6-vue-shape'
 import { Scroller } from '@antv/x6-plugin-scroller' // 引入 Vue Shape 支持
 import { Snapline } from '@antv/x6-plugin-snapline'
-import { Export } from '@antv/x6-plugin-export';
-import { Clipboard } from '@antv/x6-plugin-clipboard';
-import { Selection } from '@antv/x6-plugin-selection';
-import { Keyboard } from '@antv/x6-plugin-keyboard';
-import { History } from '@antv/x6-plugin-history';
+import { Export } from '@antv/x6-plugin-export'
+import { Clipboard } from '@antv/x6-plugin-clipboard'
+import { Selection } from '@antv/x6-plugin-selection'
+import { Keyboard } from '@antv/x6-plugin-keyboard'
+import { History } from '@antv/x6-plugin-history'
+// import { DagreLayout } from '@antv/layout'
 
 // 配置节点排列参数
-const nodeWidth = 100; // 节点宽度
-const nodeHeight = 50; // 节点高度
-const maxPerRow = 5; // 每行最大节点数
-const gapX = 20; // 横向间距
-const gapY = 50; // 纵向间距
+const nodeWidth = 100 // 节点宽度
+const nodeHeight = 50 // 节点高度
+const maxPerRow = 5 // 每行最大节点数
+const gapX = 20 // 横向间距
+const gapY = 50 // 纵向间距
 export default {
   name: 'RoutePlugin',
   components: { Toolbar },
@@ -40,7 +41,7 @@ export default {
       minimapVisible: false,
       loading: false,
       isCtrlPressed: false,
-      isConnectingEnabled: false
+      graphData: null
     }
   },
   methods: {
@@ -55,34 +56,82 @@ export default {
       } else if (action === 'redo') {
         this.graph.redo()
       } else if (action === 'line') {
-        console.log('line')
-        this.isConnectingEnabled = !this.isConnectingEnabled
+        this.toogleConnecting()
       }
     },
+    // 切换是否可连线状态
+    toogleConnecting() {
+      const nodes = this.graph.getNodes()
+      const currentMagnet = nodes[0].attr('body/magnet')
+      nodes.forEach((node) => {
+        node.setAttrs({
+          body: {
+            fill: '#f0f0f0',
+            stroke: '#d9d9d9',
+            magnet: !currentMagnet
+          }
+        })
+      })
+    },
+    // 新增节点
     batchAddNode() {
-      const totalNodes = 50; // 假设要添加 20 个节点
+      const totalNodes = 50 // 假设要添加 20 个节点
+      this.graphData = {
+        nodes: [],
+        edges: []
+      }
       for (let i = 0; i < totalNodes; i++) {
-        this.addNode(`工艺 ${i + 1}`, i);
+        this.graphData.nodes.push(this.addNode(`工艺 ${i + 1}`, i))
         if (i > 0) {
-          this.addEdge(`node-${i - 1}`, `node-${i}`);
+          this.graphData.edges.push(this.addEdge(`node-${i - 1}`, `node-${i}`))
         }
       }
+      // const dagreLayout = new DagreLayout({
+      //   type: 'dagre',
+      //   rankdir: 'LR',
+      //   // align: 'UR', // 居中对齐
+      //   ranksep: 36,
+      //   nodesep: 20
+      // })
+      // dagreLayout.updateCfg({
+      //   begin: [40, 40],
+      //   ranker: 'longest-path' // 'tight-tree' 'longest-path' 'network-simplex'
+      // })
+      // let dagreModel = dagreLayout.layout(this.graphData)
+      this.graph.fromJSON(this.graphData)
       let timer = setTimeout(() => {
         this.graph.centerContent()
         clearTimeout(timer)
       })
     },
     addNode(label, index) {
-      const row = Math.floor(index / maxPerRow); // 当前行
-      const col = index % maxPerRow; // 当前列
-      const direction = row % 2 === 0 ? 1 : -1; // 行排列方向（1: 从左到右, -1: 从右到左）
+      const row = Math.floor(index / maxPerRow) // 当前行
+      const col = index % maxPerRow // 当前列
+      const direction = row % 2 === 0 ? 1 : -1 // 行排列方向（1: 从左到右, -1: 从右到左）
 
-      const actualCol = direction === 1 ? col : maxPerRow - 1 - col; // 实际列索引
+      const actualCol = direction === 1 ? col : maxPerRow - 1 - col // 实际列索引
 
-      const x = actualCol * (nodeWidth + gapX);
-      const y = row * (nodeHeight + gapY);
+      const x = actualCol * (nodeWidth + gapX)
+      const y = row * (nodeHeight + gapY)
 
-      const node = this.graph.addNode({
+      // const node = this.graph.addNode({
+      //   id: `node-${index}`, // 唯一 ID
+      //   x,
+      //   y,
+      //   width: nodeWidth,
+      //   height: nodeHeight,
+      //   shape: 'vue-shape',
+      //   component: 'NodeComponent',
+      //   data: { index: index, name: label },
+      //   attrs: {
+      //     body: {
+      //       fill: '#f0f0f0',
+      //       stroke: '#d9d9d9',
+      //       magnet: false
+      //     }
+      //   }
+      // })
+      const node = {
         id: `node-${index}`, // 唯一 ID
         x,
         y,
@@ -95,16 +144,32 @@ export default {
           body: {
             fill: '#f0f0f0',
             stroke: '#d9d9d9',
-            magnet: true,
-          },
-        },
-      });
+            magnet: false
+          }
+        }
+      }
 
-      return node;
+      return node
     },
     // 添加连线的方法
     addEdge(sourceId, targetId) {
-      this.graph.addEdge({
+      // this.graph.addEdge({
+      //   source: { cell: sourceId },
+      //   target: { cell: targetId },
+
+      //   attrs: {
+      //     line: {
+      //       stroke: '#A2B1C3',
+      //       strokeWidth: 2,
+      //       targetMarker: {
+      //         name: 'block', // 箭头样式
+      //         width: 12,
+      //         height: 8
+      //       }
+      //     }
+      //   }
+      // })
+      const edge = {
         source: { cell: sourceId },
         target: { cell: targetId },
 
@@ -115,16 +180,18 @@ export default {
             targetMarker: {
               name: 'block', // 箭头样式
               width: 12,
-              height: 8,
-            },
-          },
-        },
-      });
+              height: 8
+            }
+          }
+        }
+      }
+      return edge
     },
+    // 图表事件监听
     graphEventListener() {
       // 监听撤销
       this.graph.on('history:undo', ({ cmds }) => {
-        console.log('1212',cmds)
+        console.log('1212', cmds)
       })
       // 监听重写
       this.graph.on('history:redo', ({ cmds }) => {
@@ -140,42 +207,41 @@ export default {
       // 监听键盘事件
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Control') {
-          this.isCtrlPressed = true;
-          this.graph.enableRubberband(); // 启用框选功能
-          this.graph.disablePanning(); //禁用画布平移
-
+          this.isCtrlPressed = true
+          this.graph.enableRubberband() // 启用框选功能
+          this.graph.disablePanning() //禁用画布平移
         }
-      });
+      })
 
       document.addEventListener('keyup', (e) => {
         if (e.key === 'Control') {
-          this.isCtrlPressed = false;
-          this.graph.disableRubberband(); // 禁用框选功能
-          this.graph.enablePanning()  //启用框选功能
-
+          this.isCtrlPressed = false
+          this.graph.disableRubberband() // 禁用框选功能
+          this.graph.enablePanning() //启用框选功能
         }
-      });
+      })
 
       // 监听鼠标事件（可选，用于进一步增强控制）
       this.graph.on('blank:mousedown', (e) => {
         if (!this.isCtrlPressed) {
-          e.preventDefault(); // 如果没有按下 Ctrl，阻止框选默认行为
+          e.preventDefault() // 如果没有按下 Ctrl，阻止框选默认行为
         }
-      });
+      })
 
       this.graph.on('rubberband:start', () => {
-        console.log('开始框选');
-      });
+        console.log('开始框选')
+      })
 
       this.graph.on('rubberband:select', ({ selected }) => {
-        console.log('框选完成，选中的节点:', selected);
-      });
+        console.log('框选完成，选中的节点:', selected)
+      })
     },
     saveGraph() {
       // 保存图形数据
       const data = this.graph.toJSON()
       console.log('Graph Data:', data)
     },
+    // 初始化x6
     initGraph() {
       let pageWidth = Math.max(
         document.body.scrollWidth,
@@ -198,33 +264,30 @@ export default {
         grid: false,
         async: true, // 开启异步渲染
         virtual: true, // 开启虚拟渲染
-        // interacting: {
-        //   magnetConnectable: this.isConnectingEnabled
-        // },
         selecting: {
           enabled: true,
           global: true,
           rubberband: true, // 开启框选模式，但由我们手动控制触发条件
-          modifiers: 'ctrl', // 配合快捷键
+          modifiers: 'ctrl' // 配合快捷键
         },
 
         mousewheel: {
           enabled: true,
           zoomAtMousePosition: true,
-          modifiers: 'ctrl',
+          modifiers: 'ctrl'
         },
         connecting: {
           enabled: false,
           snap: {
-            radius: 50,
+            radius: 50
           },
           allowMulti: false,
           anchor: 'midSide',
           allowBlank: false,
-          allowLoop: false,
+          allowLoop: false
         },
         keyboard: {
-          enabled: true,
+          enabled: true
         },
         clipboard: {
           enabled: true
@@ -237,7 +300,7 @@ export default {
           pageVisible: true,
           pageBreak: true,
           pannable: true,
-          autoResize: true,
+          autoResize: true
         }
       })
       this.graph.use(
@@ -252,23 +315,28 @@ export default {
           }
         })
       )
+      // 撤销重写
       this.graph.use(
         new History({
-          enabled: true,
-        }),
+          enabled: true
+        })
       )
+      // 对齐线
       this.graph.use(
         new Snapline({
           enabled: true
         })
       )
+      // 导出
       this.graph.use(new Export())
+      // 剪切板
       this.graph.use(
         new Clipboard({
           enabled: true,
           useLocalStorage: false
         })
       )
+      // 选中
       this.graph.use(
         new Selection({
           enabled: true,
@@ -280,6 +348,7 @@ export default {
           pointerEvents: 'none'
         })
       )
+      // 键盘
       this.graph.use(
         new Keyboard({
           enabled: true,
@@ -299,12 +368,15 @@ export default {
       // this.graph.fromJSON({ nodes, edges })
     },
 
-
     setGraphSize() {
-      let winWidth = document.body.clientWidth || document.documentElement.clientWidth
-      let winHeight = document.body.clientHeight || document.documentElement.clientHeight
-      let x6GraphScroller = Array.from(document.getElementsByClassName('x6-graph-scroller'))
-      x6GraphScroller.forEach(dom => {
+      let winWidth =
+        document.body.clientWidth || document.documentElement.clientWidth
+      let winHeight =
+        document.body.clientHeight || document.documentElement.clientHeight
+      let x6GraphScroller = Array.from(
+        document.getElementsByClassName('x6-graph-scroller')
+      )
+      x6GraphScroller.forEach((dom) => {
         dom.style['width'] = winWidth - 220 + 'px'
         dom.style['height'] = winHeight - 100 + 'px'
       })
@@ -319,7 +391,7 @@ export default {
     }
   },
   created() {
-    this.start = performance.now();
+    this.start = performance.now()
   },
   mounted() {
     this.initGraph()
@@ -328,8 +400,8 @@ export default {
       this.setGraphSize()
     }
     this.batchAddNode()
-    this.end = performance.now();
-    console.log("操作执行时间：", this.end - this.start, "毫秒");
+    this.end = performance.now()
+    console.log('操作执行时间：', this.end - this.start, '毫秒')
   },
   beforeDestroy() {
     if (this.graph) {

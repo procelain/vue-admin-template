@@ -12,7 +12,7 @@
 </template>
 
 <script>
-import { Graph } from '@antv/x6'
+import { Graph, Shape } from '@antv/x6';
 import Toolbar from './Toolbar.vue'
 import SnakeLayout from '../layouts/SnakeLayout' // 自定义蛇形布局
 import NodeComponent from './NodeComponent.vue'
@@ -39,7 +39,8 @@ export default {
       graph: null,
       minimapVisible: false,
       loading: false,
-      isCtrlPressed: false
+      isCtrlPressed: false,
+      isConnectingEnabled: false
     }
   },
   methods: {
@@ -53,6 +54,9 @@ export default {
         this.graph.undo()
       } else if (action === 'redo') {
         this.graph.redo()
+      } else if (action === 'line') {
+        console.log('line')
+        this.isConnectingEnabled = !this.isConnectingEnabled
       }
     },
     batchAddNode() {
@@ -91,6 +95,7 @@ export default {
           body: {
             fill: '#f0f0f0',
             stroke: '#d9d9d9',
+            magnet: true,
           },
         },
       });
@@ -102,6 +107,7 @@ export default {
       this.graph.addEdge({
         source: { cell: sourceId },
         target: { cell: targetId },
+
         attrs: {
           line: {
             stroke: '#A2B1C3',
@@ -192,18 +198,33 @@ export default {
         grid: false,
         async: true, // 开启异步渲染
         virtual: true, // 开启虚拟渲染
+        // interacting: {
+        //   magnetConnectable: this.isConnectingEnabled
+        // },
         selecting: {
           enabled: true,
           global: true,
           rubberband: true, // 开启框选模式，但由我们手动控制触发条件
           modifiers: 'ctrl', // 配合快捷键
         },
-        keyboard: {
-          enabled: true,
-        },
+
         mousewheel: {
           enabled: true,
-          modifiers: ['ctrl', 'meta']
+          zoomAtMousePosition: true,
+          modifiers: 'ctrl',
+        },
+        connecting: {
+          enabled: false,
+          snap: {
+            radius: 50,
+          },
+          allowMulti: false,
+          anchor: 'midSide',
+          allowBlank: false,
+          allowLoop: false,
+        },
+        keyboard: {
+          enabled: true,
         },
         clipboard: {
           enabled: true

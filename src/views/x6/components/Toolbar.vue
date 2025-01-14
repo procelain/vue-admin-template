@@ -4,6 +4,7 @@
     <button @click="$emit('action', 'save')">保存</button>
     <button @click="$emit('action', 'undo')">撤销</button>
     <button @click="$emit('action', 'redo')">重做</button>
+    <button @click="$emit('action', 'line')">连线</button>
   </div>
 </template>
 

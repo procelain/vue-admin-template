@@ -24,7 +24,7 @@ import { Clipboard } from '@antv/x6-plugin-clipboard'
 import { Selection } from '@antv/x6-plugin-selection'
 import { Keyboard } from '@antv/x6-plugin-keyboard'
 import { History } from '@antv/x6-plugin-history'
-// import { DagreLayout } from '@antv/layout'
+import { DagreLayout } from '@antv/layout'
 
 // 配置节点排列参数
 const nodeWidth = 100 // 节点宽度
@@ -41,7 +41,8 @@ export default {
       minimapVisible: false,
       loading: false,
       isCtrlPressed: false,
-      graphData: null
+      nodes: [],
+      edges: []
     }
   },
   methods: {
@@ -58,6 +59,64 @@ export default {
       } else if (action === 'line') {
         this.toogleConnecting()
       }
+    },
+    applyDagreLayout(nodes, edges) {
+      const layoutOptions = {
+        type: 'dagre',
+        rankdir: 'LR', // 从上到下布局
+        nodesep: 50, // 节点间距
+        ranksep: 100 // 层级间距
+      }
+
+      // 使用 dagre 布局
+      const layoutResult = new DagreLayout({
+        nodes: nodes.map((node) => ({ id: node.id, ...node })),
+        edges: edges.map((edge) => ({
+          source: edge.source,
+          target: edge.target
+        })),
+        ...layoutOptions
+      })
+
+      return layoutResult
+    },
+    applySnakeShapeLayout(nodes, ranksep = 100, nodesep = 50) {
+      // 按层级分组节点
+      const layers = {}
+      nodes.forEach((node) => {
+        const layer = Math.round(node.y / ranksep) // 根据 y 坐标计算层级
+        if (!layers[layer]) layers[layer] = []
+        layers[layer].push(node)
+      })
+
+      // 按蛇形规则调整节点
+      Object.keys(layers).forEach((layerIndex, i) => {
+        const isOdd = i % 2 === 1 // 判断奇偶层
+        const layerNodes = layers[layerIndex]
+
+        // 对节点进行排序（奇数层从左到右，偶数层从右到左）
+        layerNodes.sort((a, b) => a.x - b.x)
+        if (isOdd) layerNodes.reverse()
+
+        // 重新计算节点位置
+        layerNodes.forEach((node, j) => {
+          node.x = j * nodesep // 每个节点间隔 nodesep
+          node.y = i * ranksep // 行间距
+        })
+      })
+
+      // 将调整后的节点合并返回
+      return Object.values(layers).flat()
+    },
+    applyCombinedLayout(nodes, edges) {
+      // Step 1: 使用 dagre 布局
+      const dagreResult = this.applyDagreLayout(nodes, edges)
+
+      // Step 2: 应用蛇形布局
+      const snakeResult = this.applySnakeShapeLayout(dagreResult.nodes)
+
+      // 返回布局后的节点和边
+      return { nodes: snakeResult, edges: dagreResult.edges }
     },
     // 切换是否可连线状态
     toogleConnecting() {
@@ -76,14 +135,10 @@ export default {
     // 新增节点
     batchAddNode() {
       const totalNodes = 50 // 假设要添加 20 个节点
-      this.graphData = {
-        nodes: [],
-        edges: []
-      }
       for (let i = 0; i < totalNodes; i++) {
-        this.graphData.nodes.push(this.addNode(`工艺 ${i + 1}`, i))
+        this.nodes.push(this.addNode(`工艺 ${i + 1}`, i))
         if (i > 0) {
-          this.graphData.edges.push(this.addEdge(`node-${i - 1}`, `node-${i}`))
+          this.edges.push(this.addEdge(`node-${i - 1}`, `node-${i}`))
         }
       }
       // const dagreLayout = new DagreLayout({
@@ -98,7 +153,23 @@ export default {
       //   ranker: 'longest-path' // 'tight-tree' 'longest-path' 'network-simplex'
       // })
       // let dagreModel = dagreLayout.layout(this.graphData)
-      this.graph.fromJSON(this.graphData)
+      const { nodes: layoutNodes, edges: layoutEdges } =
+        this.applyCombinedLayout(this.nodes, this.edges)
+
+      this.graph.fromJSON({
+        nodes: layoutNodes.map((node) => ({
+          id: node.id,
+          x: node.x,
+          y: node.y,
+          label: node.label,
+          shape: 'custom-node'
+        })),
+        edges: layoutEdges.map((edge) => ({
+          source: edge.source,
+          target: edge.target,
+          shape: 'custom-edge'
+        }))
+      })
       let timer = setTimeout(() => {
         this.graph.centerContent()
         clearTimeout(timer)

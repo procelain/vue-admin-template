@@ -12,7 +12,19 @@
 </template>
 
 <script>
-import { Graph, Shape } from '@antv/x6'
+import {
+  Graph,
+  Shape,
+  Path,
+  Point,
+  EdgeView,
+  Registry,
+  Model,
+  Node,
+  Edge,
+  Cell,
+  Vector
+} from '@antv/x6'
 import Toolbar from './Toolbar.vue'
 import SnakeLayout from '../layouts/SnakeLayout' // 自定义蛇形布局
 import NodeComponent from './NodeComponent.vue'
@@ -42,10 +54,118 @@ export default {
       loading: false,
       isCtrlPressed: false,
       nodes: [],
-      edges: []
+      edges: [],
+      COLUMN_NUMBER: 3, // 每行最多放置的节点数
+      CELL_WIDTH: 200, // 网格单元格宽度
+      CELL_HEIGHT: 100, // 网格单元格高度
+      COMPONENT_TEXT_HEIGHT: 20, // 组件文本高度
+      LINE_LIGHT_COLOR: 'cccccc', // 禁用状态的边颜色
+      begin: [0, 0], // 网格起始坐标
+      longEdges: [] // 长边数据
     }
   },
   methods: {
+    // 应用网格布局
+    applyGridLayout() {
+      let queue = this.graph.getRootNodes()
+      let rowNumber = 0 // 行号
+      let columnNumber = 0 // 列号
+      let direction = -1 // 方向: 1，向右；-1，向左
+      let preYComps = 0 // 上一行的累计高度
+      const visited = {} // 记录已访问的节点
+      const SWAP_GRID_WIDTH =
+        this.begin[0] +
+        this.begin[0] +
+        this.CELL_WIDTH * (this.COLUMN_NUMBER - 1) // 网格宽度
+      let maxCompHeight = 0 // 当前行的最大组件高度
+
+      do {
+        if (columnNumber % this.COLUMN_NUMBER === 0) {
+          // 每行节点数达到 COLUMN_NUMBER 时，换行并调整方向
+          rowNumber++
+          columnNumber = 0
+          direction *= -1 // 方向反转
+          preYComps += maxCompHeight // 更新累计高度
+          maxCompHeight = 0 // 重置当前行的最大高度
+        }
+        columnNumber++
+
+        const cells = [] // 存储下一批待处理的节点
+        queue.forEach((next) => {
+          if (next == null || visited[next.id]) {
+            return // 跳过已访问的节点
+          }
+          visited[next.id] = true // 标记为已访问
+
+          // 计算节点的高度
+          const compHeight =
+            next.getData().components?.length *
+              (this.COMPONENT_TEXT_HEIGHT - 12) || 0
+          maxCompHeight =
+            compHeight > maxCompHeight ? compHeight : maxCompHeight
+
+          // 计算节点的水平偏移量
+          const { x } = next.getPosition()
+          let dx = -((rowNumber - 1) * (this.CELL_WIDTH * this.COLUMN_NUMBER))
+          if (direction === -1) {
+            // 如果方向为向左，调整水平偏移量
+            const targetX = SWAP_GRID_WIDTH - (dx + x)
+            dx = targetX - x
+          }
+
+          // 计算节点的垂直偏移量
+          const dy = (rowNumber - 1) * this.CELL_HEIGHT + preYComps
+          next.translate(dx, dy) // 移动节点到新位置
+
+          // 获取当前节点的邻居节点，并按垂直位置排序
+          const neighbors = this.graph.getNeighbors(next, { outgoing: true })
+          neighbors.sort((a, b) => {
+            const { y: aY } = a.position()
+            const { y: bY } = b.position()
+            return aY - bY
+          })
+
+          // 将邻居节点加入待处理队列
+          const lastIndex = cells.length
+          neighbors.forEach((neighbor) => {
+            cells.splice(lastIndex, 0, neighbor)
+          })
+
+          // 每行结束时，设置边的连接器样式
+          if (columnNumber % this.COLUMN_NUMBER === 0) {
+            this.graph.getOutgoingEdges(next)?.forEach((edge) => {
+              edge.setConnector('custom', {
+                direction: direction === -1 ? 'left' : 'right'
+              })
+            })
+          }
+
+          // 处理状态为 disabled 的节点及其边
+          if (next.getData().status === 'disabled') {
+            next.attr('body/stroke', `#${this.LINE_LIGHT_COLOR}`)
+            const edges = [
+              ...(this.graph.getOutgoingEdges(next) || []),
+              ...(this.graph.getIncomingEdges(next) || [])
+            ]
+            edges.forEach((edge) => {
+              edge.attr('line/stroke', `#${this.LINE_LIGHT_COLOR}`)
+            })
+          }
+        })
+        queue = cells // 更新待处理队列
+      } while (queue.length > 0) // 直到所有节点处理完毕
+
+      // 处理长边
+      this.longEdges?.forEach((longEdge) => {
+        this.graph.addEdge({
+          ...longEdge,
+          router: { name: 'custom' } // 使用自定义路由器
+        })
+      })
+
+      // this.graph.unfreeze() // 解冻图，允许渲染
+    },
+
     handleAction(action) {
       // 根据工具栏触发的操作处理不同逻辑
       if (action === 'addNode') {
@@ -59,64 +179,6 @@ export default {
       } else if (action === 'line') {
         this.toogleConnecting()
       }
-    },
-    applyDagreLayout(nodes, edges) {
-      const layoutOptions = {
-        type: 'dagre',
-        rankdir: 'LR', // 从上到下布局
-        nodesep: 50, // 节点间距
-        ranksep: 100 // 层级间距
-      }
-
-      // 使用 dagre 布局
-      const layoutResult = new DagreLayout({
-        nodes: nodes.map((node) => ({ id: node.id, ...node })),
-        edges: edges.map((edge) => ({
-          source: edge.source,
-          target: edge.target
-        })),
-        ...layoutOptions
-      })
-
-      return layoutResult
-    },
-    applySnakeShapeLayout(nodes, ranksep = 100, nodesep = 50) {
-      // 按层级分组节点
-      const layers = {}
-      nodes.forEach((node) => {
-        const layer = Math.round(node.y / ranksep) // 根据 y 坐标计算层级
-        if (!layers[layer]) layers[layer] = []
-        layers[layer].push(node)
-      })
-
-      // 按蛇形规则调整节点
-      Object.keys(layers).forEach((layerIndex, i) => {
-        const isOdd = i % 2 === 1 // 判断奇偶层
-        const layerNodes = layers[layerIndex]
-
-        // 对节点进行排序（奇数层从左到右，偶数层从右到左）
-        layerNodes.sort((a, b) => a.x - b.x)
-        if (isOdd) layerNodes.reverse()
-
-        // 重新计算节点位置
-        layerNodes.forEach((node, j) => {
-          node.x = j * nodesep // 每个节点间隔 nodesep
-          node.y = i * ranksep // 行间距
-        })
-      })
-
-      // 将调整后的节点合并返回
-      return Object.values(layers).flat()
-    },
-    applyCombinedLayout(nodes, edges) {
-      // Step 1: 使用 dagre 布局
-      const dagreResult = this.applyDagreLayout(nodes, edges)
-
-      // Step 2: 应用蛇形布局
-      const snakeResult = this.applySnakeShapeLayout(dagreResult.nodes)
-
-      // 返回布局后的节点和边
-      return { nodes: snakeResult, edges: dagreResult.edges }
     },
     // 切换是否可连线状态
     toogleConnecting() {
@@ -132,6 +194,42 @@ export default {
         })
       })
     },
+    // 注册自定义连接器
+    registerCustomConnector() {
+      const customConnector = (sourcePoint, targetPoint, routePoints, args) => {
+        let path
+        if (args.direction === 'right') {
+          const prev = Point.create(sourcePoint.x + 26, sourcePoint.y - 26)
+          path = new Path(Path.createSegment('M', prev))
+          path.arcTo(12, 12, 0, 1, 1, targetPoint.x + 26, targetPoint.y + 26)
+        } else {
+          const prev = Point.create(sourcePoint.x - 26, sourcePoint.y - 26)
+          path = new Path(Path.createSegment('M', prev))
+          path.arcTo(12, 12, 0, 0, 0, targetPoint.x - 26, targetPoint.y + 26)
+        }
+        return path.serialize()
+      }
+
+      Graph.registerConnector('custom', customConnector)
+    },
+
+    // 注册自定义路由器
+    registerCustomRouter() {
+      const customRouter = (vertices, args, view) => {
+        const sourceCorner = view.sourceBBox.getCenter()
+        const targetCorner = view.targetBBox.getCenter()
+        const points = vertices.map((p) => Point.create(p))
+        const middleY = (sourceCorner.y + targetCorner.y) / 2
+        points.push(Point.create(sourceCorner.x, middleY))
+        points.push(Point.create(targetCorner.x, middleY))
+
+        const manhattan = Registry.Router.presets['manhattan']
+        const routerArgs = args
+        return manhattan.call(this, points, routerArgs, view)
+      }
+
+      Graph.registerRouter('custom', customRouter)
+    },
     // 新增节点
     batchAddNode() {
       const totalNodes = 50 // 假设要添加 20 个节点
@@ -141,35 +239,26 @@ export default {
           this.edges.push(this.addEdge(`node-${i - 1}`, `node-${i}`))
         }
       }
-      // const dagreLayout = new DagreLayout({
-      //   type: 'dagre',
-      //   rankdir: 'LR',
-      //   // align: 'UR', // 居中对齐
-      //   ranksep: 36,
-      //   nodesep: 20
-      // })
-      // dagreLayout.updateCfg({
-      //   begin: [40, 40],
-      //   ranker: 'longest-path' // 'tight-tree' 'longest-path' 'network-simplex'
-      // })
-      // let dagreModel = dagreLayout.layout(this.graphData)
-      const { nodes: layoutNodes, edges: layoutEdges } =
-        this.applyCombinedLayout(this.nodes, this.edges)
 
-      this.graph.fromJSON({
-        nodes: layoutNodes.map((node) => ({
-          id: node.id,
-          x: node.x,
-          y: node.y,
-          label: node.label,
-          shape: 'custom-node'
-        })),
-        edges: layoutEdges.map((edge) => ({
-          source: edge.source,
-          target: edge.target,
-          shape: 'custom-edge'
-        }))
+      // 创建 Dagre 布局实例
+      const dagreLayout = new DagreLayout({
+        type: 'dagre', // 指定布局类型为 dagre
+        rankdir: 'LR', // 布局方向，TB 表示从上到下，LR 表示从左到右
+        align: 'UL', // 节点对齐方式，UL 表示左上对齐
+        nodesep: 50, // 节点间距
+        ranksep: 100 // 层次间距
       })
+      dagreLayout.updateCfg({
+        begin: this.begin,
+        ranker: 'longest-path' // 'tight-tree' 'longest-path' 'network-simplex'
+      })
+      const layoutData = dagreLayout.layout({
+        nodes: this.nodes,
+        edges: this.edges
+      })
+      // this.graph.freeze()
+      this.graph.fromJSON(layoutData)
+      this.applyGridLayout()
       let timer = setTimeout(() => {
         this.graph.centerContent()
         clearTimeout(timer)
@@ -204,8 +293,6 @@ export default {
       // })
       const node = {
         id: `node-${index}`, // 唯一 ID
-        x,
-        y,
         width: nodeWidth,
         height: nodeHeight,
         shape: 'vue-shape',
@@ -431,7 +518,8 @@ export default {
         shape: 'vue-shape',
         component: NodeComponent
       })
-
+      this.registerCustomConnector()
+      this.registerCustomRouter()
       // 使用蛇形布局
       // const nodes = this.getInitialNodes() // 获取初始节点数据
       // const edges = this.getInitialEdges() // 获取初始连线数据

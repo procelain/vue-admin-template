@@ -1,7 +1,7 @@
 <template>
-  <div class="node" v-if="nodeData">
-    <div class="index">{{ nodeData.index }}</div>
-    <div class="name">{{ nodeData.name }}</div>
+  <div class="x6-node-vue" v-if="nodeData">
+    <div class="x6-node-vue-index">{{ nodeData.id }}</div>
+    <div class="x6-node-vue-name">{{ nodeData.title }}</div>
   </div>
 </template>
 
@@ -22,7 +22,7 @@ export default {
 </script>
 
 <style>
-.node {
+.x6-node-vue {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -33,11 +33,23 @@ export default {
   height: 100%;
 }
 
-.index {
+.x6-node-vue-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: bold;
+  width: 100px;
+  height: 25px;
+  line-height: 25px;
 }
 
-.name {
+.x6-node-vue-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
+  color: red;
+  width: 100px;
+  height: 25px;
 }
 </style>

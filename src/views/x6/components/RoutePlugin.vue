@@ -23,8 +23,8 @@ import {
   Node,
   Edge,
   Cell,
-  Vector
-} from '@antv/x6'
+  Vector, DataUri
+} from '@antv/x6';
 import Toolbar from './Toolbar.vue'
 import SnakeLayout from '../layouts/SnakeLayout' // 自定义蛇形布局
 import NodeComponent from './NodeComponent.vue'
@@ -55,115 +55,111 @@ export default {
       isCtrlPressed: false,
       nodes: [],
       edges: [],
-      COLUMN_NUMBER: 3, // 每行最多放置的节点数
-      CELL_WIDTH: 200, // 网格单元格宽度
-      CELL_HEIGHT: 100, // 网格单元格高度
-      COMPONENT_TEXT_HEIGHT: 20, // 组件文本高度
-      LINE_LIGHT_COLOR: 'cccccc', // 禁用状态的边颜色
-      begin: [0, 0], // 网格起始坐标
+      COLUMN_NUMBER: 5, // 每行最多放置的节点数
+      CELL_WIDTH: 100, // 网格单元格宽度
+      CELL_HEIGHT: 50, // 网格单元格高度
+      LINE_LIGHT_COLOR: '', // 禁用状态的边颜色
+      begin: [50, 50], // 网格起始坐标
       longEdges: [] // 长边数据
     }
   },
   methods: {
     // 应用网格布局
-    applyGridLayout() {
-      let queue = this.graph.getRootNodes()
-      let rowNumber = 0 // 行号
-      let columnNumber = 0 // 列号
-      let direction = -1 // 方向: 1，向右；-1，向左
-      let preYComps = 0 // 上一行的累计高度
-      const visited = {} // 记录已访问的节点
-      const SWAP_GRID_WIDTH =
-        this.begin[0] +
-        this.begin[0] +
-        this.CELL_WIDTH * (this.COLUMN_NUMBER - 1) // 网格宽度
-      let maxCompHeight = 0 // 当前行的最大组件高度
-
-      do {
-        if (columnNumber % this.COLUMN_NUMBER === 0) {
-          // 每行节点数达到 COLUMN_NUMBER 时，换行并调整方向
-          rowNumber++
-          columnNumber = 0
-          direction *= -1 // 方向反转
-          preYComps += maxCompHeight // 更新累计高度
-          maxCompHeight = 0 // 重置当前行的最大高度
-        }
-        columnNumber++
-
-        const cells = [] // 存储下一批待处理的节点
-        queue.forEach((next) => {
-          if (next == null || visited[next.id]) {
-            return // 跳过已访问的节点
+    layout(graphNodes) {
+      const begin = [60, 90];
+      const data = {
+        nodes: [],
+        edges: [],
+      };
+      // Step 1: 添加节点、边的信息
+      graphNodes.forEach((node) => {
+        const { id,targets } = node;
+        data.nodes.push({
+          id,
+          shape: 'vue-shape',
+          width: nodeWidth,
+          height: nodeHeight,
+          component: 'NodeComponent',
+          targets: targets,
+          data: node,
+          zIndex: 1,
+          attrs: {
+            body: {
+              fill: '#f0f0f0',
+              stroke: '#d9d9d9',
+              magnet: false
+            }
           }
-          visited[next.id] = true // 标记为已访问
-
-          // 计算节点的高度
-          const compHeight =
-            next.getData().components?.length *
-              (this.COMPONENT_TEXT_HEIGHT - 12) || 0
-          maxCompHeight =
-            compHeight > maxCompHeight ? compHeight : maxCompHeight
-
-          // 计算节点的水平偏移量
-          const { x } = next.getPosition()
-          let dx = -((rowNumber - 1) * (this.CELL_WIDTH * this.COLUMN_NUMBER))
-          if (direction === -1) {
-            // 如果方向为向左，调整水平偏移量
-            const targetX = SWAP_GRID_WIDTH - (dx + x)
-            dx = targetX - x
-          }
-
-          // 计算节点的垂直偏移量
-          const dy = (rowNumber - 1) * this.CELL_HEIGHT + preYComps
-          next.translate(dx, dy) // 移动节点到新位置
-
-          // 获取当前节点的邻居节点，并按垂直位置排序
-          const neighbors = this.graph.getNeighbors(next, { outgoing: true })
-          neighbors.sort((a, b) => {
-            const { y: aY } = a.position()
-            const { y: bY } = b.position()
-            return aY - bY
-          })
-
-          // 将邻居节点加入待处理队列
-          const lastIndex = cells.length
-          neighbors.forEach((neighbor) => {
-            cells.splice(lastIndex, 0, neighbor)
-          })
-
-          // 每行结束时，设置边的连接器样式
-          if (columnNumber % this.COLUMN_NUMBER === 0) {
-            this.graph.getOutgoingEdges(next)?.forEach((edge) => {
-              edge.setConnector('custom', {
-                direction: direction === -1 ? 'left' : 'right'
-              })
-            })
-          }
-
-          // 处理状态为 disabled 的节点及其边
-          if (next.getData().status === 'disabled') {
-            next.attr('body/stroke', `#${this.LINE_LIGHT_COLOR}`)
-            const edges = [
-              ...(this.graph.getOutgoingEdges(next) || []),
-              ...(this.graph.getIncomingEdges(next) || [])
-            ]
-            edges.forEach((edge) => {
-              edge.attr('line/stroke', `#${this.LINE_LIGHT_COLOR}`)
-            })
-          }
-        })
-        queue = cells // 更新待处理队列
-      } while (queue.length > 0) // 直到所有节点处理完毕
-
-      // 处理长边
-      this.longEdges?.forEach((longEdge) => {
-        this.graph.addEdge({
-          ...longEdge,
-          router: { name: 'custom' } // 使用自定义路由器
-        })
+        });
+        node.targets && node.targets.forEach((targetId) => {
+          data.edges.push({
+            source: id,
+            target: targetId,
+            attrs: {
+              line: {
+                stroke: '#A2B1C3',
+                strokeWidth: 2,
+                targetMarker: {
+                  name: 'block', // 箭头样式
+                  width: 12,
+                  height: 8
+                }
+              }
+            },
+            zIndex: 0,
+          });
+        });
+      });
+      // 创建 Dagre 布局实例
+      const dagreLayout = new DagreLayout({
+        type: 'dagre', // 指定布局类型为 dagre
+        rankdir: 'LR', // 布局方向，TB 表示从上到下，LR 表示从左到右
+        align: 'UL', // 节点对齐方式，UL 表示左上对齐
+        nodesep: 20, // 节点间距
+        ranksep: 50 // 层次间距
       })
+      // dagreLayout.updateCfg({
+      //   begin: begin,
+      //   ranker: 'network-simplex' // 'tight-tree' 'longest-path' 'network-simplex'
+      // })
+      const layoutData = dagreLayout.layout({
+        nodes: data.nodes,
+        edges: data.edges
+      })
+      const adjustedData = {
+        ...layoutData,
+        nodes: layoutData.nodes.map((node) => {
+          // 通过逻辑调整每个节点的位置
+          if (node.targets && node.targets.length) {
+            console.log('33333',node)
+            node.y = node.y + node.targets.length * 20
+          }
+          return node;
+        }),
+      };
+      // const COLUMN_NUMBER = 6; // 例如每行 3 个节点
+      // const groupedNodes = [];
+      // layoutData.nodes.forEach((node, index) => {
+      //   const rowIndex = Math.floor(index / COLUMN_NUMBER); // 计算行号
+      //   if (!groupedNodes[rowIndex]) {
+      //     groupedNodes[rowIndex] = [];
+      //   }
+      //   groupedNodes[rowIndex].push(node);
+      // });
+      // groupedNodes.forEach((nodesInRow, rowIndex) => {
+      //   const isReverse = rowIndex % 2 === 1; // 奇数行反向排列
 
-      // this.graph.unfreeze() // 解冻图，允许渲染
+        // if (isReverse) {
+        //   nodesInRow.reverse(); // 反转节点顺序
+        // }
+
+      //   // 重新计算节点的 x 和 y 坐标
+      //   nodesInRow.forEach((node, colIndex) => {
+      //     node.x = colIndex * 100 + 50*colIndex; // 假设每个节点宽度为 100
+      //     node.y = rowIndex * 100; // 假设每行高度为 100
+      //   });
+      // });
+      this.graph.fromJSON(adjustedData)
     },
 
     handleAction(action) {
@@ -178,7 +174,59 @@ export default {
         this.graph.redo()
       } else if (action === 'line') {
         this.toogleConnecting()
+      } else if (action === 'export') {
+        this.exportImg()
       }
+    },
+    exportImg() {
+      let title = 'graph'
+      let timer = setTimeout(() => {
+          this.graph.toPNG(
+            dataUri => {
+              DataUri.downloadDataUri(dataUri, title)
+            },
+            {
+              padding: {
+                top: 50,
+                left: 50,
+                right: 50,
+                bottom: 50
+              },
+              quality: 1,
+              stylesheet: `
+              .x6-node-vue {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                border: 1px solid #000;
+                background: red;
+                width: 100px;
+              }
+
+              .x6-node-vue-index {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                width: 100px;
+                height: 25px;
+                line-height: 25px;
+              }
+
+              .x6-node-vue-name {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                color: red;
+                width: 100px;
+                height: 25px;
+              }`
+            }
+          )
+        clearTimeout(timer)
+      },10)
     },
     // 切换是否可连线状态
     toogleConnecting() {
@@ -232,7 +280,7 @@ export default {
     },
     // 新增节点
     batchAddNode() {
-      const totalNodes = 50 // 假设要添加 20 个节点
+      const totalNodes = 30 // 假设要添加 20 个节点
       for (let i = 0; i < totalNodes; i++) {
         this.nodes.push(this.addNode(`工艺 ${i + 1}`, i))
         if (i > 0) {
@@ -240,57 +288,12 @@ export default {
         }
       }
 
-      // 创建 Dagre 布局实例
-      const dagreLayout = new DagreLayout({
-        type: 'dagre', // 指定布局类型为 dagre
-        rankdir: 'LR', // 布局方向，TB 表示从上到下，LR 表示从左到右
-        align: 'UL', // 节点对齐方式，UL 表示左上对齐
-        nodesep: 50, // 节点间距
-        ranksep: 100 // 层次间距
-      })
-      dagreLayout.updateCfg({
-        begin: this.begin,
-        ranker: 'longest-path' // 'tight-tree' 'longest-path' 'network-simplex'
-      })
-      const layoutData = dagreLayout.layout({
-        nodes: this.nodes,
-        edges: this.edges
-      })
-      // this.graph.freeze()
-      this.graph.fromJSON(layoutData)
-      this.applyGridLayout()
       let timer = setTimeout(() => {
         this.graph.centerContent()
         clearTimeout(timer)
       })
     },
     addNode(label, index) {
-      const row = Math.floor(index / maxPerRow) // 当前行
-      const col = index % maxPerRow // 当前列
-      const direction = row % 2 === 0 ? 1 : -1 // 行排列方向（1: 从左到右, -1: 从右到左）
-
-      const actualCol = direction === 1 ? col : maxPerRow - 1 - col // 实际列索引
-
-      const x = actualCol * (nodeWidth + gapX)
-      const y = row * (nodeHeight + gapY)
-
-      // const node = this.graph.addNode({
-      //   id: `node-${index}`, // 唯一 ID
-      //   x,
-      //   y,
-      //   width: nodeWidth,
-      //   height: nodeHeight,
-      //   shape: 'vue-shape',
-      //   component: 'NodeComponent',
-      //   data: { index: index, name: label },
-      //   attrs: {
-      //     body: {
-      //       fill: '#f0f0f0',
-      //       stroke: '#d9d9d9',
-      //       magnet: false
-      //     }
-      //   }
-      // })
       const node = {
         id: `node-${index}`, // 唯一 ID
         width: nodeWidth,
@@ -311,26 +314,13 @@ export default {
     },
     // 添加连线的方法
     addEdge(sourceId, targetId) {
-      // this.graph.addEdge({
-      //   source: { cell: sourceId },
-      //   target: { cell: targetId },
-
-      //   attrs: {
-      //     line: {
-      //       stroke: '#A2B1C3',
-      //       strokeWidth: 2,
-      //       targetMarker: {
-      //         name: 'block', // 箭头样式
-      //         width: 12,
-      //         height: 8
-      //       }
-      //     }
-      //   }
-      // })
       const edge = {
         source: { cell: sourceId },
         target: { cell: targetId },
-
+        router: {
+          name: 'manhattan',
+          padding: 30
+        },
         attrs: {
           line: {
             stroke: '#A2B1C3',
@@ -382,7 +372,7 @@ export default {
       // 监听鼠标事件（可选，用于进一步增强控制）
       this.graph.on('blank:mousedown', (e) => {
         if (!this.isCtrlPressed) {
-          e.preventDefault() // 如果没有按下 Ctrl，阻止框选默认行为
+          e.preventDefault && e.preventDefault() // 如果没有按下 Ctrl，阻止框选默认行为
         }
       })
 
@@ -513,6 +503,7 @@ export default {
           global: true
         })
       )
+      console.log('555555555', this.graph)
       // 注册 Vue 节点
       register({
         shape: 'vue-shape',
@@ -520,11 +511,6 @@ export default {
       })
       this.registerCustomConnector()
       this.registerCustomRouter()
-      // 使用蛇形布局
-      // const nodes = this.getInitialNodes() // 获取初始节点数据
-      // const edges = this.getInitialEdges() // 获取初始连线数据
-      // SnakeLayout(this.graph, nodes) // 调用蛇形布局
-      // this.graph.fromJSON({ nodes, edges })
     },
 
     setGraphSize() {
@@ -540,13 +526,201 @@ export default {
         dom.style['height'] = winHeight - 100 + 'px'
       })
     },
-    getInitialNodes() {
-      // 示例初始节点数据
-      return []
-    },
-    getInitialEdges() {
-      // 示例初始连线数据
-      return []
+    /** 测试数据 Mock data */
+    getMockData(prefer) {
+      switch (prefer) {
+        case "A":
+          return [
+            {
+              id: "1", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["2", "3", "4", "5"], // 旅程节点 下一个节点
+            },
+            {
+              id: "2", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["6"], // 旅程节点 下一个节点
+              components: ["应用组件"], // 旅程节点 应用组件
+            },
+            {
+              id: "3", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["6"], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+            {
+              id: "4", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["6"], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+            {
+              id: "5", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["6"], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+            {
+              id: "6", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["7"], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+            {
+              id: "7", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["8"], // 旅程节点 下一个节点
+            },
+            {
+              id: "8", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["9"], // 旅程节点 下一个节点
+            },
+            {
+              id: "9", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["10"], // 旅程节点 下一个节点
+            },
+            {
+              id: "10", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["11"], // 旅程节点 下一个节点
+            },
+            {
+              id: "11", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: [], // 旅程节点 下一个节点
+            },
+          ];
+        case "B":
+          return [
+            {
+              id: "1", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["2", "3"], // 旅程节点 下一个节点
+            },
+            {
+              id: "2", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["4"], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+            {
+              id: "3", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["4"], // 旅程节点 下一个节点
+            },
+            {
+              id: "4", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["5"], // 旅程节点 下一个节点
+            },
+            {
+              id: "5", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["6"], // 旅程节点 下一个节点
+            },
+            {
+              id: "6", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["7"], // 旅程节点 下一个节点
+            },
+            {
+              id: "7", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["8"], // 旅程节点 下一个节点
+            },
+            {
+              id: "8", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["9"], // 旅程节点 下一个节点
+            },
+            {
+              id: "9", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["10"], // 旅程节点 下一个节点
+            },
+            {
+              id: "10", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["11"], // 旅程节点 下一个节点
+            },
+            {
+              id: "11", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["12"], // 旅程节点 下一个节点
+            },
+            {
+              id: "12", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["13"], // 旅程节点 下一个节点
+            },
+            {
+              id: "13", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["14"], // 旅程节点 下一个节点
+              status: "warning", // 旅程节点 状态
+            },
+            {
+              id: "14", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["15"], // 旅程节点 下一个节点
+            },
+            {
+              id: "15", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["16"], // 旅程节点 下一个节点
+            },
+            {
+              id: "16", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["17"], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+            {
+              id: "17", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["18"], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+            {
+              id: "18", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: [], // 旅程节点 下一个节点
+              status: "disabled", // 旅程节点 状态
+            },
+          ];
+        case "C":
+        default:
+          return [
+            {
+              id: "1", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["2"], // 旅程节点 下一个节点
+            },
+            {
+              id: "2", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["3"], // 旅程节点 下一个节点
+            },
+            {
+              id: "3", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["4"], // 旅程节点 下一个节点
+            },
+            {
+              id: "4", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: ["5"], // 旅程节点 下一个节点
+              status: "warning", // 旅程节点 状态
+            },
+            {
+              id: "5", // 旅程节点 ID
+              title: "旅程节点", // 旅程节点 名称
+              targets: [], // 旅程节点 下一个节点
+            },
+          ];
+      }
     }
   },
   created() {
@@ -558,7 +732,13 @@ export default {
     window.onresize = () => {
       this.setGraphSize()
     }
-    this.batchAddNode()
+    // this.batchAddNode()
+    const graphData = this.getMockData('A')
+    this.layout(graphData)
+    let timer = setTimeout(() => {
+      this.graph.centerContent()
+      clearTimeout(timer)
+    })
     this.end = performance.now()
     console.log('操作执行时间：', this.end - this.start, '毫秒')
   },

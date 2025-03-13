@@ -2,7 +2,10 @@
   <div class="page">
     <SplitPane :pane-length-percent.sync="paneLengthPercent">
       <template slot="one">
-        <TreeToolbar :nodeType="currentNodeType" @toolbar-click="handleAction"/>
+        <TreeToolbar
+          :nodeType="currentNodeType"
+          @toolbar-click="handleAction"
+        />
       </template>
       <template slot="two"></template>
     </SplitPane>
@@ -10,7 +13,7 @@
 </template>
 
 <script>
-import SplitPane from "./split-pane";
+import SplitPane from './split-pane'
 import TreeToolbar from './toolbar.vue'
 export default {
   components: {
@@ -19,17 +22,17 @@ export default {
   },
   data() {
     return {
-      currentNodeType: 'process',
-      paneLengthPercent: 30,
-    };
+      currentNodeType: 'step',
+      paneLengthPercent: 30
+    }
   },
   methods: {
     handleAction(action) {
       // 处理工具栏点击事件
       console.log('执行操作:', action)
-    },
+    }
   }
-};
+}
 </script>
 
 <style scoped lang="scss">

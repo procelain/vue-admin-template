@@ -71,6 +71,12 @@ export const constantRoutes = [
         meta: { title: 'Split', icon: 'tree' }
       },
       {
+        path: 'anchor',
+        name: 'anchor',
+        component: () => import('@/views/anchor/index'),
+        meta: { title: 'Anchor', icon: 'tree' }
+      },
+      {
         path: 'dhtmlx-gantt',
         name: 'DhtmlxGantt',
         component: () => import('@/views/DhtmlxGantt/index'),

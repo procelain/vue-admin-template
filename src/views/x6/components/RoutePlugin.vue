@@ -443,7 +443,7 @@ export default {
       //     node.y = rowIndex * 100; // 假设每行高度为 100
       //   });
       // });
-      this.graph.fromJSON({ nodes });
+      this.graph.fromJSON({ nodes,edges });
     },
 
     handleAction(action) {

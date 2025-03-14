@@ -1,0 +1,112 @@
+// vxe-table-reset.scss
+.sortable-tree .drag-btn {
+  cursor: move;
+  font-size: 14px;
+  &.merge {
+    color: #0006ff;
+  }
+}
+.sortable-tree .vxe-body--row.sortable-ghost,
+.sortable-tree .vxe-body--row.sortable-chosen {
+  background-color: #dfecfb;
+}
+.selected-v {
+  background-color: #c2ebff !important;
+}
+.importExcel-v {
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  width: 100px;
+  height: 35px;
+  opacity: 0;
+  cursor: pointer;
+}
+.sortable-tree .vxe-body--row {
+  position: relative;
+}
+
+.sortable-tree .drag-highlight {
+  z-index: 1;
+  &.line-top {
+    position: absolute;
+    top: 0;
+    left: 1px;
+    right: 2px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 50%, #09f32f 0) repeat-x;
+    background-size: 12px 1px;
+    background-position: 0 0;
+    animation: drag-top-anim 1s infinite linear;
+  }
+  &.line-bottom {
+    position: absolute;
+    left: 1px;
+    right: 2px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 50%, #09f32f 0) repeat-x;
+    background-size: 12px 1px;
+    background-position: 0 0;
+    animation: drag-bottom-anim 1s infinite linear;
+  }
+  &.line-left {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 1px;
+    width: 1px;
+    background: linear-gradient(0deg, transparent 6px, #0f0ae8 6px) repeat-y;
+    background-size: 1px 12px;
+    background-position: 100% 0;
+    animation: drag-left-anim 1s infinite linear;
+  }
+  &.line-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 2px;
+    width: 1px;
+    background: linear-gradient(0deg, transparent 50%, #0f0ae8 0) repeat-y;
+    background-size: 1px 12px;
+    background-position: 100% 0;
+    animation: drag-right-anim 1s infinite linear;
+  }
+}
+@keyframes drag-top-anim {
+  from {
+  }
+  to {
+    background-position: 12px 0;
+  }
+}
+@keyframes drag-bottom-anim {
+  from {
+  }
+  to {
+    background-position: -12px 0;
+  }
+}
+// 0 -12px, 100% 12px, 12px 0, -12px 100%;
+@keyframes drag-left-anim {
+  from {
+  }
+  to {
+    background-position: 0 -12px;
+  }
+}
+
+@keyframes drag-right-anim {
+  from {
+  }
+  to {
+    background-position: 0 12px;
+  }
+}
+
+.table-edit-icon {
+  color: #939393;
+  cursor: pointer;
+  & .size2 {
+    font-size: 1.2em;
+  }
+}

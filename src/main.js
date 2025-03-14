@@ -21,6 +21,7 @@ import VXETable from 'vxe-table'
 import 'vxe-table/lib/style.css'
 
 Vue.use(VXETable)
+import '@/styles/vxe-table-reset.scss' // 注意所在顺序
 
 import App from './App'
 import store from './store'

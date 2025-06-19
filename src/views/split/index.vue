@@ -2,10 +2,7 @@
   <div class="page">
     <SplitPane :pane-length-percent.sync="paneLengthPercent">
       <template slot="one">
-        <TreeToolbar
-          :nodeType="currentNodeType"
-          @toolbar-click="handleAction"
-        />
+
       </template>
       <template slot="two"></template>
     </SplitPane>
@@ -15,10 +12,12 @@
 <script>
 import SplitPane from './split-pane'
 import TreeToolbar from './toolbar.vue'
+import wheel from '@/views/split/wheel.vue';
 export default {
   components: {
     SplitPane,
-    TreeToolbar
+    TreeToolbar,
+    wheel
   },
   data() {
     return {

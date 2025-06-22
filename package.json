@@ -1,5 +1,5 @@
 {
-  "name": "vue-admin-templat",
+  "name": "vue-admin-template",
   "version": "4.4.0",
   "description": "A vue admin template with Element UI & axios & iconfont & permission control & lint",
   "author": "Pan <panfree23@gmail.com>",
@@ -45,7 +45,7 @@
     "vuex": "3.1.0",
     "vxe-table": "^3.4.12",
     "xe-utils": "^3.5.28",
-    "vxe-table-v3": "npm:vxe-table@^3.15.39"
+    "vxe-table-v3": "npm:vxe-table@^3.15.39",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

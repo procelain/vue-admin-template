@@ -2,10 +2,10 @@
   <div class="page">
     <SplitPane :pane-length-percent.sync="paneLengthPercent">
       <template slot="one">
-<!--        <VxeTable/>-->
+        <!-- <VxeTable /> -->
       </template>
       <template slot="two">
-        <VxeTableV3/>
+        <!-- <VxeTableV3 /> -->
       </template>
     </SplitPane>
   </div>
@@ -13,12 +13,12 @@
 
 <script>
 import SplitPane from '../split/split-pane.vue'
-import VxeTable from './vxe-table.vue'
-import VxeTableV3 from  './vxe-table-v3.vue'
+// import VxeTable from './vxe-table.vue'
+import VxeTableV3 from './vxe-table-v3.vue'
 export default {
   components: {
     SplitPane,
-    VxeTable,
+    // VxeTable,
     VxeTableV3
   },
   data() {
@@ -27,9 +27,7 @@ export default {
       paneLengthPercent: 50
     }
   },
-  methods: {
-
-  }
+  methods: {}
 }
 </script>
 

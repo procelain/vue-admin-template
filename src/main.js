@@ -16,11 +16,11 @@ Vue.use(Antd)
 
 import 'xe-utils'
 
-import VXETable from 'vxe-table'
+// import VXETable from 'vxe-table'
 
-import 'vxe-table/lib/style.css'
+// import 'vxe-table/lib/style.css'
 
-Vue.use(VXETable)
+// Vue.use(VXETable)
 import '@/styles/vxe-table-reset.scss' // 注意所在顺序
 
 import App from './App'
@@ -50,9 +50,10 @@ Vue.use(ElementUI, { locale })
 
 Vue.config.productionTip = false
 
-new Vue({
+const vm = new Vue({
   el: '#app',
   router,
   store,
   render: (h) => h(App)
 })
+window.$vm = vm
